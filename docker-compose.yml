@@ -1,0 +1,17 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    command: >
+      bash -c "php artisan config:clear &&
+               php artisan route:clear &&
+               php artisan cache:clear &&
+               php artisan serve --host=0.0.0.0" 

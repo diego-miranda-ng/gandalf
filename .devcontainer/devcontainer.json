@@ -1,0 +1,20 @@
+{
+    "name": "Laravel Development Environment",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bmewburn.vscode-intelephense-client",
+                "onecentlin.laravel-blade",
+                "amiralizadeh9480.laravel-extra-intellisense",
+                "mikestead.dotenv",
+                "eamodio.gitlens",
+                "github.copilot"
+            ]
+        }
+    },
+    "postCreateCommand": "composer install",
+    "remoteUser": "vscode"
+} 
