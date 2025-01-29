@@ -8,4 +8,4 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::post('/gemini/generate', [GeminiController::class, 'generate']); 
+Route::post('/prompt', [GeminiController::class, 'prompt']);

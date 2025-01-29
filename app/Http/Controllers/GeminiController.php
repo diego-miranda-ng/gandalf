@@ -3,31 +3,31 @@
 namespace App\Http\Controllers;
 
 use App\Services\GeminiService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 
 class GeminiController extends Controller
 {
-    protected $geminiService;
 
-    public function __construct(GeminiService $geminiService)
+    public function __construct(private GeminiService $geminiService, private CacheService $cacheService)
+    {}
+
+    public function prompt(Request $request)
     {
-        $this->geminiService = $geminiService;
-    }
+        try {
+            $request->validate([
+                'prompt' => 'required|string|max:1000',
+            ]);
 
-    public function generate(Request $request)
-    {
-        $request->validate([
-            'prompt' => 'required|string|max:1000',
-            'owner' => 'nullable|string',
-            'repo' => 'nullable|string'
-        ]);
+            $cacheName = $this->cacheService->cacheContents();
+            $response = $this->geminiService->generateText(
+                $request->prompt,
+                $cacheName
+            );
 
-        $response = $this->geminiService->generateText(
-            $request->prompt,
-            $request->owner,
-            $request->repo
-        );
-
-        return response()->json(['response' => $response]);
+            return response()->json(['response' => $response]);
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
     }
 } 

@@ -6,59 +6,52 @@ use Illuminate\Support\Facades\Http;
 
 class GeminiService
 {
-    protected $baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-    protected $model = 'gemini-1.5-flash';
+    private const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+    private const MODEL = 'gemini-1.5-flash';
 
-    public function getRepositoryContent($owner, $repo)
+    public function __construct(private GitHubService $gitHubService)
+    {}
+
+    public function cacheContents(string $content, string $role = 'user', int $ttlSeconds = 300)
     {
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('GITHUB_TOKEN'),
-                'Accept' => 'application/vnd.github.v3+json',
-            ])->get("https://api.github.com/repos/{$owner}/{$repo}/contents");
+        $response = Http::post(self::BASE_URL . '/cachedContents?key=' . env('GOOGLE_API_KEY'), [
+            'model' => "models/" . self::MODEL,
+            'contents' => [[
+                'parts' => [[
+                    'text' => base64_encode($content)
+                ]],
+                'role' => $role
+            ]],
+            'systemInstruction' => [
+                'parts' => [[
+                    'text' => 'Analyze the contents of all the files in this repository. For each file, identify its purpose and functionality. Describe how each file relates to others within the repository, including any dependencies or interactions. Provide the location of each file within the project directory structure. Also, explain the overall context and objective of the project, detailing how the different files and components contribute to the project as a whole.'
+                ]]
+            ],
+            'ttl' => "{$ttlSeconds}s",
+        ])->throw()->json();
 
-
-            if ($response->successful()) {
-                $files = collect($response->json())
-                    ->filter(fn($file) => $file['type'] === 'file')
-                    ->map(fn($file) => [
-                        'name' => $file['name'],
-                        'content' => Http::get($file['download_url'])->body(),
-                    ]);
-                return $files;
-            }
-            return null;
-        } catch (\Exception $e) {
-            return null;
-        }
+        return $response;
     }
 
-    public function generateText(string $prompt, ?string $owner = null, ?string $repo = null)
+    public function generateText(string $prompt, ?string $cache = null, string $role = 'user')
     {
-        try {
-            $context = '';
-            if ($owner && $repo) {
-                $files = $this->getRepositoryContent($owner, $repo);
+        $response = Http::post(self::BASE_URL . '/models/' . self::MODEL . ':generateContent?key=' . env('GOOGLE_API_KEY'), [
+            'contents' => [[
+                'parts' => [['text' => $prompt]],
+                "role" => $role,
+            ]],
+            "cachedContent" => $cache
+        ])->throw()->json();
 
-                if ($files) {
-                    $context = "Based on this repository content:\n\n";
-                    foreach ($files as $file) {
-                        $context .= "File: {$file['name']}\n{$file['content']}\n\n";
-                    }
-                }
-            }
+        return $response;
+    }
 
-            $fullPrompt = $context . $prompt;
+    public function getCachedContent()
+    {
+        $response = Http::get(self::BASE_URL . '/cachedContents/?key=' . env('GOOGLE_API_KEY'))
+            ->throw()
+            ->json();
 
-            $response = Http::post("{$this->baseUrl}/models/{$this->model}:generateContent?key=" . env('GOOGLE_API_KEY'), [
-                'contents' => [[
-                    'parts' => [['text' => $fullPrompt]]
-                ]]
-            ])->throw()->json();
-
-            return $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        } catch (\Exception $e) {
-            return ['error' => $e->getMessage()];
-        }
+        return $response;
     }
 } 
