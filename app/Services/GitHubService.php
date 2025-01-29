@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\Http;
 
 class GitHubService
 {
-    public function getRepositoryContent($owner, $repo)
+    public function getRepositoryContent(string $owner, string $repo, string $path = '')
     {
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('GITHUB_TOKEN'),
             'Accept' => 'application/vnd.github.v3+json',
-        ])->get("https://api.github.com/repos/{$owner}/{$repo}/contents");
+        ])->get("https://api.github.com/repos/{$owner}/{$repo}/contents/{$path}");
 
 
         if ($response->successful()) {

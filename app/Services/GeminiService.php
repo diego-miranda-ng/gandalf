@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 class GeminiService
 {
     private const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-    private const MODEL = 'gemini-1.5-flash';
+    private const MODEL = 'gemini-1.5-flash-001';
 
     public function __construct(private GitHubService $gitHubService)
     {}
